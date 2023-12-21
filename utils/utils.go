@@ -7,8 +7,8 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/iden3/go-iden3-crypto/constants"
-	"github.com/iden3/go-iden3-crypto/ff"
+	"github.com/machinefi/go-iden3-crypto/constants"
+	"github.com/machinefi/go-iden3-crypto/ff"
 )
 
 // NewIntFromString creates a new big.Int from a decimal integer encoded as a
