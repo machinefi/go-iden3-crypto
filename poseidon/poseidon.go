@@ -127,6 +127,78 @@ func Hash(inpBI []*big.Int) (*big.Int, error) {
 	return r, nil
 }
 
+// HashWithWidth computes the Poseidon hash for the given inputs with width
+func HashWithWidth(inpBI []*big.Int, width int) (*big.Int, error) {
+	t := width
+	if len(inpBI) == 0 || len(inpBI) > len(NROUNDSP) {
+		return nil, fmt.Errorf("invalid inputs length %d, max %d", len(inpBI), len(NROUNDSP))
+	}
+	if !utils.CheckBigIntArrayInField(inpBI) {
+		return nil, errors.New("inputs values not inside Finite Field")
+	}
+	inp := utils.BigIntArrayToElementArray(inpBI)
+
+	nRoundsF := NROUNDSF
+	nRoundsP := NROUNDSP[t-2]
+	C := c.c[t-2]
+	S := c.s[t-2]
+	M := c.m[t-2]
+	P := c.p[t-2]
+
+	state := make([]*ff.Element, t)
+	//state[0] = zero()
+	copy(state[0:], inp)
+
+	if len(inpBI) < width {
+		for i := len(inpBI); i < width; i++ {
+			state[i] = &ff.Element{0}
+		}
+	}
+
+	ark(state, C, 0)
+
+	for i := 0; i < nRoundsF/2-1; i++ {
+		exp5state(state)
+		ark(state, C, (i+1)*t)
+		state = mix(state, t, M)
+	}
+	exp5state(state)
+	ark(state, C, (nRoundsF/2)*t)
+	state = mix(state, t, P)
+
+	mul := zero()
+	for i := 0; i < nRoundsP; i++ {
+		exp5(state[0])
+		state[0].Add(state[0], C[(nRoundsF/2+1)*t+i])
+
+		mul.SetZero()
+		newState0 := zero()
+		for j := 0; j < len(state); j++ {
+			mul.Mul(S[(t*2-1)*i+j], state[j])
+			newState0.Add(newState0, mul)
+		}
+
+		for k := 1; k < t; k++ {
+			mul.SetZero()
+			state[k] = state[k].Add(state[k], mul.Mul(state[0], S[(t*2-1)*i+t+k-1]))
+		}
+		state[0] = newState0
+	}
+
+	for i := 0; i < nRoundsF/2-1; i++ {
+		exp5state(state)
+		ark(state, C, (nRoundsF/2+1)*t+nRoundsP+i*t)
+		state = mix(state, t, M)
+	}
+	exp5state(state)
+	state = mix(state, t, M)
+
+	rE := state[0]
+	r := big.NewInt(0)
+	rE.ToBigIntRegular(r)
+	return r, nil
+}
+
 // HashBytes returns a sponge hash of a msg byte slice split into blocks of 31 bytes
 func HashBytes(msg []byte) (*big.Int, error) {
 	return HashBytesX(msg, spongeInputs)
