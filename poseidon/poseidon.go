@@ -130,8 +130,8 @@ func Hash(inpBI []*big.Int) (*big.Int, error) {
 // HashWithWidth computes the Poseidon hash for the given inputs with width
 func HashWithWidth(inpBI []*big.Int, width int) (*big.Int, error) {
 	t := width
-	if len(inpBI) == 0 || len(inpBI) > len(NROUNDSP) {
-		return nil, fmt.Errorf("invalid inputs length %d, max %d", len(inpBI), len(NROUNDSP))
+	if len(inpBI) == 0 || len(inpBI) > width || len(inpBI) > len(NROUNDSP) {
+		return nil, fmt.Errorf("invalid inputs length %d, max %d and can't be greater than %d", len(inpBI), len(NROUNDSP), width)
 	}
 	if !utils.CheckBigIntArrayInField(inpBI) {
 		return nil, errors.New("inputs values not inside Finite Field")
